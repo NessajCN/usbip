@@ -68,12 +68,7 @@ impl UsbIpServer {
             #[cfg(target_os = "linux")]
             let path = device_info.sysfs_path().to_path_buf();
             #[cfg(not(target_os = "linux"))]
-            let path = PathBuf::from(format!(
-                "/sys/bus/{}/{}/{}",
-                device_info.busnum(),
-                device_info.device_address(),
-                0
-            ));
+            let path = device_info.bus_id().to_string();
             #[cfg(target_os = "linux")]
             let bus_id = match path.file_name() {
                 Some(s) => s.to_os_string().into_string().unwrap_or(format!(
@@ -89,14 +84,13 @@ impl UsbIpServer {
                     0,
                 ),
             };
-
             #[cfg(not(target_os = "linux"))]
-            let bus_id = format!(
-                "{}-{}-{}",
-                device_info.busnum(),
-                device_info.device_address(),
-                0,
-            );
+            let bus_id = device_info.bus_id().to_string();
+
+            #[cfg(target_os = "linux")]
+            let bus_num = device_info.busnum() as u32;
+            #[cfg(not(target_os = "linux"))]
+            let bus_num = 0u32;
             let cfg = match dev.active_configuration() {
                 Ok(cfg) => cfg,
                 Err(err) => {
@@ -161,7 +155,7 @@ impl UsbIpServer {
             let mut device = UsbDevice {
                 path,
                 bus_id,
-                bus_num: device_info.busnum() as u32,
+                bus_num,
                 dev_num: device_info.device_address() as u32,
                 speed,
                 vendor_id: device_info.vendor_id(),
